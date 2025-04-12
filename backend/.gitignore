@@ -25,3 +25,7 @@ dist-ssr
 
 .env
 */.env
+
+# Virtual environment
+.venv
+/cruzhax
