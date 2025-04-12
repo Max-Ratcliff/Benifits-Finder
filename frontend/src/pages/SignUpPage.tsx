@@ -20,7 +20,6 @@ export default function SignUpPage() {
       return;
     }
     try {
-      // Create the account with default empty profile values.
       await createUser(email, password, { isStudent: "", hasJob: "", hasDependents: "" });
       navigate("/home");
     } catch (err) {
