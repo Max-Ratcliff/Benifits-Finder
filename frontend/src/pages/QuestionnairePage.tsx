@@ -44,7 +44,7 @@ export default function QuestionnairePage() {
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <div>
           <label className="block text-sm font-medium mb-1">
-            Are you currently a student?
+            Are you currently enrolled as a student?
           </label>
           <div className="flex space-x-4">
             {["Yes", "No"].map((option) => (

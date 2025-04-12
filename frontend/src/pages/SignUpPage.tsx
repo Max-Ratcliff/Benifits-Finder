@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
-// Import the Google logo using default syntax
 import GoogleLogo from "@/components/ui/googleLogo.png";
 import { createUser, signInWithGoogle } from "@/lib/firebase";
 
@@ -39,7 +38,6 @@ export default function SignUpPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white px-4">
-      {/* Back arrow */}
       <button
         onClick={() => navigate("/landing")}
         className="absolute top-4 left-4 text-white"
@@ -48,7 +46,6 @@ export default function SignUpPage() {
         <ArrowLeft size={24} />
       </button>
       <h1 className="text-4xl font-bold mb-6">Create Account</h1>
-      {/* Google Sign Up Section */}
       <div className="flex flex-col items-center mb-6">
         <img
           src={GoogleLogo}
@@ -57,7 +54,7 @@ export default function SignUpPage() {
         />
         <button
           onClick={handleGoogleSignUp}
-          className="w-full max-w-md py-3 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"
+          className="w-[400%] max-w-md py-3 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"
         >
           Sign Up with Google
         </button>

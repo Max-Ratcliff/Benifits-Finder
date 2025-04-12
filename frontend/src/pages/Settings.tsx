@@ -1,31 +1,55 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { db, auth } from "../lib/firebase";
-import { doc, getDoc, updateDoc, DocumentData, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
-interface UserAnswers {
+interface UserProfile {
   isStudent: string;
+  institutionType: string;
+  isUCStudent: string;
+  financialAid: string;
   hasJob: string;
+  jobTraining: string;
+  housingStatus: string;
+  needsHousingAssistance: string;
+  hasInsurance: string;
+  eligibleForHealthcare: string;
+  healthcareNeeds: string;
   hasDependents: string;
+  dependentsCount: string;
+  incomeBracket: string;
 }
 
 export function Settings() {
-  const [userAnswers, setUserAnswers] = useState<UserAnswers>({
+  const [profile, setProfile] = useState<UserProfile>({
     isStudent: "",
+    institutionType: "",
+    isUCStudent: "",
+    financialAid: "",
     hasJob: "",
+    jobTraining: "",
+    housingStatus: "",
+    needsHousingAssistance: "",
+    hasInsurance: "",
+    eligibleForHealthcare: "",
+    healthcareNeeds: "",
     hasDependents: "",
+    dependentsCount: "",
+    incomeBracket: "",
   });
+  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchProfile = async () => {
       if (!auth.currentUser) return;
       try {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
         if (userDoc.exists()) {
-          setUserAnswers(userDoc.data() as UserAnswers);
+          // Merge existing data with defaults (in case new fields were added)
+          setProfile((prev) => ({ ...prev, ...userDoc.data() } as UserProfile));
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -34,7 +58,7 @@ export function Settings() {
       }
     };
 
-    fetchUserData();
+    fetchProfile();
   }, []);
 
   const handleSave = async () => {
@@ -42,9 +66,9 @@ export function Settings() {
     setSaving(true);
     try {
       await updateDoc(doc(db, "users", auth.currentUser.uid), {
-        ...userAnswers,
+        ...profile,
         updatedAt: serverTimestamp(),
-      } as DocumentData);
+      });
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
@@ -66,7 +90,7 @@ export function Settings() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-8 p-4"
+      className="max-w-3xl mx-auto p-4 space-y-8"
     >
       <div className="text-center">
         <motion.h2
@@ -77,19 +101,133 @@ export function Settings() {
           Profile Settings
         </motion.h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Update your information to receive personalized recommendations.
+          Help us provide personalized recommendations by updating your information.
         </p>
       </div>
 
       <motion.div
+        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 space-y-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 space-y-6"
       >
-        <div className="space-y-4">
+        {/* Educational Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Are you currently enrolled as a student?
+          </label>
+          <div className="flex space-x-4">
+            {["Yes", "No"].map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value={option}
+                  checked={profile.isStudent === option}
+                  onChange={(e) =>
+                    setProfile((prev) => ({ ...prev, isStudent: e.target.value }))
+                  }
+                  className="form-radio"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {profile.isStudent === "Yes" && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                What type of institution are you attending?
+              </label>
+              <select
+                value={profile.institutionType}
+                onChange={(e) =>
+                  setProfile((prev) => ({ ...prev, institutionType: e.target.value }))
+                }
+                className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+              >
+                <option value="">Select institution type</option>
+                <option value="University">University</option>
+                <option value="College">College</option>
+                <option value="Community College">Community College</option>
+                <option value="UC">University of California (UC)</option>
+              </select>
+            </div>
+
+            {profile.institutionType === "UC" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Are you an undergraduate or graduate student?
+                </label>
+                <div className="flex space-x-4">
+                  {["Undergraduate", "Graduate"].map((option) => (
+                    <label key={option} className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        value={option}
+                        checked={profile.isUCStudent === option}
+                        onChange={(e) =>
+                          setProfile((prev) => ({ ...prev, isUCStudent: e.target.value }))
+                        }
+                        className="form-radio"
+                      />
+                      <span>{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Are you currently receiving financial aid (scholarships, grants, etc.)?
+              </label>
+              <div className="flex space-x-4">
+                {["Yes", "No"].map((option) => (
+                  <label key={option} className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value={option}
+                      checked={profile.financialAid === option}
+                      onChange={(e) =>
+                        setProfile((prev) => ({ ...prev, financialAid: e.target.value }))
+                      }
+                      className="form-radio"
+                    />
+                    <span>{option}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Employment Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Are you currently employed?
+          </label>
+          <div className="flex space-x-4">
+            {["Yes", "No"].map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value={option}
+                  checked={profile.hasJob === option}
+                  onChange={(e) =>
+                    setProfile((prev) => ({ ...prev, hasJob: e.target.value }))
+                  }
+                  className="form-radio"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {profile.hasJob === "No" && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Are you currently a student?
+              Would you like to receive information about job training programs?
             </label>
             <div className="flex space-x-4">
               {["Yes", "No"].map((option) => (
@@ -97,12 +235,9 @@ export function Settings() {
                   <input
                     type="radio"
                     value={option}
-                    checked={userAnswers.isStudent === option}
+                    checked={profile.jobTraining === option}
                     onChange={(e) =>
-                      setUserAnswers((prev) => ({
-                        ...prev,
-                        isStudent: e.target.value,
-                      }))
+                      setProfile((prev) => ({ ...prev, jobTraining: e.target.value }))
                     }
                     className="form-radio"
                   />
@@ -111,9 +246,74 @@ export function Settings() {
               ))}
             </div>
           </div>
+        )}
+
+        {/* Housing Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            How would you describe your housing situation?
+          </label>
+          <select
+            value={profile.housingStatus}
+            onChange={(e) =>
+              setProfile((prev) => ({ ...prev, housingStatus: e.target.value }))
+            }
+            className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+          >
+            <option value="">Select your housing situation</option>
+            <option value="Stable">Stable housing</option>
+            <option value="AtRisk">At risk of homelessness</option>
+            <option value="Temporary">Temporary housing</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Do you require housing assistance?
+          </label>
+          <div className="flex space-x-4">
+            {["Yes", "No"].map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value={option}
+                  checked={profile.needsHousingAssistance === option}
+                  onChange={(e) =>
+                    setProfile((prev) => ({ ...prev, needsHousingAssistance: e.target.value }))
+                  }
+                  className="form-radio"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Healthcare Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Do you have health insurance?
+          </label>
+          <div className="flex space-x-4">
+            {["Yes", "No"].map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value={option}
+                  checked={profile.hasInsurance === option}
+                  onChange={(e) =>
+                    setProfile((prev) => ({ ...prev, hasInsurance: e.target.value }))
+                  }
+                  className="form-radio"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {profile.hasInsurance === "No" && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Do you currently have a job?
+              Are you eligible for government healthcare programs (Medicaid, Medicare, etc.)?
             </label>
             <div className="flex space-x-4">
               {["Yes", "No"].map((option) => (
@@ -121,12 +321,9 @@ export function Settings() {
                   <input
                     type="radio"
                     value={option}
-                    checked={userAnswers.hasJob === option}
+                    checked={profile.eligibleForHealthcare === option}
                     onChange={(e) =>
-                      setUserAnswers((prev) => ({
-                        ...prev,
-                        hasJob: e.target.value,
-                      }))
+                      setProfile((prev) => ({ ...prev, eligibleForHealthcare: e.target.value }))
                     }
                     className="form-radio"
                   />
@@ -135,30 +332,77 @@ export function Settings() {
               ))}
             </div>
           </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Do you have any specific healthcare needs?
+          </label>
+          <input
+            type="text"
+            value={profile.healthcareNeeds}
+            onChange={(e) =>
+              setProfile((prev) => ({ ...prev, healthcareNeeds: e.target.value }))
+            }
+            placeholder="e.g. Chronic condition, disability"
+            className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+          />
+        </div>
+
+        {/* Household / Income Section */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Do you have dependents?
+          </label>
+          <div className="flex space-x-4">
+            {["Yes", "No"].map((option) => (
+              <label key={option} className="flex items-center space-x-2">
+                <input
+                  type="radio"
+                  value={option}
+                  checked={profile.hasDependents === option}
+                  onChange={(e) =>
+                    setProfile((prev) => ({ ...prev, hasDependents: e.target.value }))
+                  }
+                  className="form-radio"
+                />
+                <span>{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {profile.hasDependents === "Yes" && (
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Do you have any dependents?
+              How many dependents do you have?
             </label>
-            <div className="flex space-x-4">
-              {["Yes", "No"].map((option) => (
-                <label key={option} className="flex items-center space-x-2">
-                  <input
-                    type="radio"
-                    value={option}
-                    checked={userAnswers.hasDependents === option}
-                    onChange={(e) =>
-                      setUserAnswers((prev) => ({
-                        ...prev,
-                        hasDependents: e.target.value,
-                      }))
-                    }
-                    className="form-radio"
-                  />
-                  <span>{option}</span>
-                </label>
-              ))}
-            </div>
+            <input
+              type="number"
+              value={profile.dependentsCount}
+              onChange={(e) =>
+                setProfile((prev) => ({ ...prev, dependentsCount: e.target.value }))
+              }
+              placeholder="e.g. 2"
+              className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+            />
           </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            What is your current income bracket?
+          </label>
+          <select
+            value={profile.incomeBracket}
+            onChange={(e) =>
+              setProfile((prev) => ({ ...prev, incomeBracket: e.target.value }))
+            }
+            className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+          >
+            <option value="">Select your income bracket</option>
+            <option value="< $25k">{`< $25k`}</option>
+            <option value="$25k - $50k">$25k - $50k</option>
+            <option value="$50k - $75k">$50k - $75k</option>
+            <option value="> $75k">{`> $75k`}</option>
+          </select>
         </div>
 
         <motion.button

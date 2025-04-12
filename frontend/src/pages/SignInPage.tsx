@@ -14,8 +14,7 @@ export default function SignInPage() {
     e.preventDefault();
     setError("");
     try {
-      const userCredential = await signIn(email, password);
-      console.log("User credential: ", userCredential);
+      await signIn(email, password);
       navigate("/home");
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
@@ -42,17 +41,16 @@ export default function SignInPage() {
       >
         <ArrowLeft size={24} />
       </button>
-      {/* Header with Google logo and Google sign-in button */}
+      <h1 className="text-4xl font-bold mb-6">Sign In</h1>
       <div className="flex flex-col items-center mb-6">
         <img src={GoogleLogo} alt="Google Logo" className="h-12 w-auto mb-2" />
         <button
           onClick={handleGoogleSignIn}
-          className="w-full max-w-md py-3 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"
+          className="w-[400%] max-w-md py-3 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"
         >
           Sign In with Google
         </button>
       </div>
-      <h1 className="text-4xl font-bold mb-6">Sign In</h1>
       <form onSubmit={handleEmailSignIn} className="w-full max-w-md space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <div>
