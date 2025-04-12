@@ -1,34 +1,44 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { createUser, auth, db } from "@/lib/firebase";
+import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { ArrowLeft } from "lucide-react";
 
 export default function QuestionnairePage() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const { email, password } = state || { email: "", password: "" };
-  
+
   const [isStudent, setIsStudent] = useState("");
   const [hasJob, setHasJob] = useState("");
   const [hasDependents, setHasDependents] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     if (!isStudent || !hasJob || !hasDependents) {
       setError("Please answer all questions.");
       return;
     }
-    // Here you would typically call createUser with the credentials and profile data.
-    // For example:
-    // createUser(email, password, { isStudent, hasJob, hasDependents })
-    //   .then(() => navigate("/home"))
-    //   .catch((err) => setError(err.message));
-    // For now, we'll navigate to "/home" as a placeholder.
-    navigate("/home");
+    try {
+      // Create the account in Firebase Auth and Firestore
+      await createUser(email, password, { isStudent, hasJob, hasDependents });
+      navigate("/home");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white items-center justify-center px-4">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white px-4">
+      <button
+        onClick={() => navigate("/signup")}
+        className="absolute top-4 left-4 text-white"
+        aria-label="Back"
+      >
+        <ArrowLeft size={24} />
+      </button>
       <h1 className="text-4xl font-bold mb-6">Tell Us About Yourself</h1>
       <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">
         {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -41,11 +51,12 @@ export default function QuestionnairePage() {
               <label key={option} className="flex items-center space-x-2">
                 <input
                   type="radio"
+                  name="isStudent"
                   value={option}
                   checked={isStudent === option}
                   onChange={(e) => setIsStudent(e.target.value)}
-                  className="form-radio"
                   required
+                  className="form-radio"
                 />
                 <span>{option}</span>
               </label>
@@ -61,11 +72,12 @@ export default function QuestionnairePage() {
               <label key={option} className="flex items-center space-x-2">
                 <input
                   type="radio"
+                  name="hasJob"
                   value={option}
                   checked={hasJob === option}
                   onChange={(e) => setHasJob(e.target.value)}
-                  className="form-radio"
                   required
+                  className="form-radio"
                 />
                 <span>{option}</span>
               </label>
@@ -81,11 +93,12 @@ export default function QuestionnairePage() {
               <label key={option} className="flex items-center space-x-2">
                 <input
                   type="radio"
+                  name="hasDependents"
                   value={option}
                   checked={hasDependents === option}
                   onChange={(e) => setHasDependents(e.target.value)}
-                  className="form-radio"
                   required
+                  className="form-radio"
                 />
                 <span>{option}</span>
               </label>

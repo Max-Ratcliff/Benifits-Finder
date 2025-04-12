@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { db, auth } from '../lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { db, auth } from "../lib/firebase";
+import { doc, getDoc, updateDoc, DocumentData, serverTimestamp } from "firebase/firestore";
 
 interface UserAnswers {
   isStudent: string;
@@ -11,9 +11,9 @@ interface UserAnswers {
 
 export function Settings() {
   const [userAnswers, setUserAnswers] = useState<UserAnswers>({
-    isStudent: '',
-    hasJob: '',
-    hasDependents: '',
+    isStudent: "",
+    hasJob: "",
+    hasDependents: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -22,14 +22,13 @@ export function Settings() {
   useEffect(() => {
     const fetchUserData = async () => {
       if (!auth.currentUser) return;
-      
       try {
-        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
         if (userDoc.exists()) {
           setUserAnswers(userDoc.data() as UserAnswers);
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error("Error fetching user data:", error);
       } finally {
         setLoading(false);
       }
@@ -40,14 +39,16 @@ export function Settings() {
 
   const handleSave = async () => {
     if (!auth.currentUser) return;
-    
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'users', auth.currentUser.uid), userAnswers);
+      await updateDoc(doc(db, "users", auth.currentUser.uid), {
+        ...userAnswers,
+        updatedAt: serverTimestamp(),
+      } as DocumentData);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (error) {
-      console.error('Error updating user data:', error);
+      console.error("Error updating user data:", error);
     } finally {
       setSaving(false);
     }
@@ -65,7 +66,7 @@ export function Settings() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-8"
+      className="max-w-2xl mx-auto space-y-8 p-4"
     >
       <div className="text-center">
         <motion.h2
@@ -76,7 +77,7 @@ export function Settings() {
           Profile Settings
         </motion.h2>
         <p className="text-gray-600 dark:text-gray-400">
-          Update your information to get the most accurate benefit recommendations
+          Update your information to receive personalized recommendations.
         </p>
       </div>
 
@@ -90,66 +91,70 @@ export function Settings() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Are you currently a student?
             </label>
-            <div className="space-y-2">
-              {['Yes', 'No'].map((option) => (
-                <label key={option} className="flex items-center space-x-3">
+            <div className="flex space-x-4">
+              {["Yes", "No"].map((option) => (
+                <label key={option} className="flex items-center space-x-2">
                   <input
                     type="radio"
                     value={option}
                     checked={userAnswers.isStudent === option}
-                    onChange={(e) => setUserAnswers(prev => ({
-                      ...prev,
-                      isStudent: e.target.value
-                    }))}
-                    className="form-radio h-5 w-5 text-blue-600"
+                    onChange={(e) =>
+                      setUserAnswers((prev) => ({
+                        ...prev,
+                        isStudent: e.target.value,
+                      }))
+                    }
+                    className="form-radio"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{option}</span>
+                  <span>{option}</span>
                 </label>
               ))}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Do you currently have a job?
             </label>
-            <div className="space-y-2">
-              {['Yes', 'No'].map((option) => (
-                <label key={option} className="flex items-center space-x-3">
+            <div className="flex space-x-4">
+              {["Yes", "No"].map((option) => (
+                <label key={option} className="flex items-center space-x-2">
                   <input
                     type="radio"
                     value={option}
                     checked={userAnswers.hasJob === option}
-                    onChange={(e) => setUserAnswers(prev => ({
-                      ...prev,
-                      hasJob: e.target.value
-                    }))}
-                    className="form-radio h-5 w-5 text-blue-600"
+                    onChange={(e) =>
+                      setUserAnswers((prev) => ({
+                        ...prev,
+                        hasJob: e.target.value,
+                      }))
+                    }
+                    className="form-radio"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{option}</span>
+                  <span>{option}</span>
                 </label>
               ))}
             </div>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Do you have any dependents?
             </label>
-            <div className="space-y-2">
-              {['Yes', 'No'].map((option) => (
-                <label key={option} className="flex items-center space-x-3">
+            <div className="flex space-x-4">
+              {["Yes", "No"].map((option) => (
+                <label key={option} className="flex items-center space-x-2">
                   <input
                     type="radio"
                     value={option}
                     checked={userAnswers.hasDependents === option}
-                    onChange={(e) => setUserAnswers(prev => ({
-                      ...prev,
-                      hasDependents: e.target.value
-                    }))}
-                    className="form-radio h-5 w-5 text-blue-600"
+                    onChange={(e) =>
+                      setUserAnswers((prev) => ({
+                        ...prev,
+                        hasDependents: e.target.value,
+                      }))
+                    }
+                    className="form-radio"
                   />
-                  <span className="text-gray-700 dark:text-gray-300">{option}</span>
+                  <span>{option}</span>
                 </label>
               ))}
             </div>
@@ -163,11 +168,11 @@ export function Settings() {
           disabled={saving}
           className={`w-full py-3 px-4 rounded-xl font-medium transition-all duration-200 ${
             success
-              ? 'bg-green-500 text-white'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? "bg-green-500 text-white"
+              : "bg-blue-600 hover:bg-blue-700 text-white"
           } disabled:opacity-50 disabled:cursor-not-allowed`}
         >
-          {saving ? 'Saving...' : success ? 'Saved Successfully!' : 'Save Changes'}
+          {saving ? "Saving..." : success ? "Saved Successfully!" : "Save Changes"}
         </motion.button>
       </motion.div>
     </motion.div>
