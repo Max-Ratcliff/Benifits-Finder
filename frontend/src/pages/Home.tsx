@@ -115,9 +115,9 @@ export function Home() {
                   <category.icon size={28} />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 group-hover:text-transparent bg-clip-text bg-gradient-to-r transition-all duration-300">
-                    {category.title}
-                  </h3>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-3 bg-clip-text bg-gradient-to-r transition-all duration-300">
+                  {category.title}
+                </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-lg">
                     {category.description}
                   </p>
