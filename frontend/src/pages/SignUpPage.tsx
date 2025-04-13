@@ -51,6 +51,7 @@ export default function SignUpPage() {
           src={GoogleLogo}
           alt="Google Logo"
           className="h-12 w-auto mb-2"
+          style={{marginBottom: '25px'}}
         />
         <button
           onClick={handleGoogleSignUp}

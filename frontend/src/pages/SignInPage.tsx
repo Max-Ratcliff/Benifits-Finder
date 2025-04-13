@@ -43,7 +43,7 @@ export default function SignInPage() {
       </button>
       <h1 className="text-4xl font-bold mb-6">Sign In</h1>
       <div className="flex flex-col items-center mb-6">
-        <img src={GoogleLogo} alt="Google Logo" className="h-12 w-auto mb-2" />
+        <img src={GoogleLogo} alt="Google Logo" className="h-12 w-auto" style={{ marginBottom: '25px' }} />
         <button
           onClick={handleGoogleSignIn}
           className="w-[400%] max-w-md py-3 bg-red-600 hover:bg-red-700 rounded text-white font-medium transition-colors"

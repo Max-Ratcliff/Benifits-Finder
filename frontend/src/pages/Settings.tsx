@@ -325,7 +325,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -463,7 +463,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -482,7 +482,7 @@ export function Settings() {
                     onChange={() => handleCheckboxChange(aid)}
                     className="form-checkbox"
                   />
-                  <span>{aid}</span>
+                  <span className="text-gray-900 dark:text-white">{aid}</span>
                 </label>
               ))}
             </div>
@@ -506,7 +506,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -549,7 +549,7 @@ export function Settings() {
                     }
                     className="form-radio"
                   />
-                  <span>{option}</span>
+                  <span className="text-gray-900 dark:text-white">{option}</span>
                 </label>
               ))}
             </div>
@@ -592,7 +592,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -615,7 +615,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -660,7 +660,7 @@ export function Settings() {
                     }
                     className="form-radio"
                   />
-                  <span>{option}</span>
+                  <span className="text-gray-900 dark:text-white">{option}</span>
                 </label>
               ))}
             </div>
@@ -698,7 +698,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
@@ -787,7 +787,7 @@ export function Settings() {
                     }
                     className="form-radio"
                   />
-                  <span>{option}</span>
+                  <span className="text-gray-900 dark:text-white">{option}</span>
                 </label>
               ))}
             </div>
@@ -809,7 +809,7 @@ export function Settings() {
                   }
                   className="form-radio"
                 />
-                <span>{option}</span>
+                <span className="text-gray-900 dark:text-white">{option}</span>
               </label>
             ))}
           </div>
