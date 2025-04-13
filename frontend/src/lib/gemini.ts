@@ -206,71 +206,7 @@ export async function generateFormFields(
  * @param userProfile - User's profile data
  * @returns The next question to ask or null if form is complete
  */
-// export async function processFormAnswer(
-//   programName: string,
-//   currentQuestion: string,
-//   answer: string,
-//   formProgress: Record<string, string>,
-//   userProfile: ExtendedFormData
-// ) {
-//   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  
-//   const prompt = `
-//   The user is filling out an application form for the "${programName}" program.
-  
-//   User profile: ${JSON.stringify(userProfile, null, 2)}
-  
-//   Previous answers:
-//   ${Object.entries(formProgress)
-//     .map(([question, answer]) => `${question}: ${answer}`)
-//     .join('\n')}
-  
-//   Current question: ${currentQuestion}
-//   User's answer: ${answer}
-  
-//   Based on this information:
-//   1. Validate if the answer is appropriate for the question
-//   2. Determine the next logical question to ask
-//   3. If all necessary information has been collected, indicate the form is complete
-  
-//   Respond in the following format:
-//   VALID: [true/false]
-//   FEEDBACK: [Any feedback about the answer if invalid]
-//   NEXT_QUESTION: [The next question to ask]
-//   PREFILL: [Suggested answer based on user profile if available]
-//   COMPLETE: [true/false indicating if form is complete]
-//   `;
-  
-//   try {
-//     const result = await model.generateContent(prompt);
-//     const response = result.response;
-//     const text = response.text();
-    
-//     // Parse the structured response
-//     const valid = text.includes("VALID: true");
-//     const feedback = text.match(/FEEDBACK: (.*)/)?.[1] || "";
-//     const nextQuestion = text.match(/NEXT_QUESTION: (.*)/)?.[1] || "";
-//     const prefill = text.match(/PREFILL: (.*)/)?.[1] || "";
-//     const complete = text.includes("COMPLETE: true");
-    
-//     return {
-//       valid,
-//       feedback,
-//       nextQuestion,
-//       prefill,
-//       complete
-//     };
-//   } catch (error) {
-//     console.error("Error processing form answer:", error);
-//     return {
-//       valid: true,
-//       feedback: "There was an error processing your answer.",
-//       nextQuestion: "Would you like to continue with another question?",
-//       prefill: "",
-//       complete: false
-//     };
-//   }
-// }
+
 export async function processFormAnswer(
   programName: string,
   currentQuestion: string,
