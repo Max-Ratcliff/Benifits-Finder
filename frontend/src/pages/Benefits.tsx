@@ -534,7 +534,7 @@ export function Benefits() {
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               {selectedProgram ? (formComplete ? "Application Complete" : "Application Form") : "Your Benefits Analysis"}
             </h3>
-            <div className="prose prose-blue dark:prose-invert max-w-none whitespace-pre-wrap">
+            <div className="prose prose-blue dark:text-white mb-2 max-w-none whitespace-pre-wrap">
               {results}
             </div>
           </motion.div>
