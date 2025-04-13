@@ -568,6 +568,7 @@ export function Benefits() {
 
   const submitAnswer = async (answer: string) => {
     setLoading(true);
+    setFeedback(''); // Clear any existing feedback
     try {
       const nextProgress = { ...formProgress, [currentQuestion]: answer };
       setFormProgress(nextProgress);
@@ -728,15 +729,29 @@ export function Benefits() {
               )}
 
               {(!currentPrefill || disablePrefill || !selectedProgram) && (
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Processing...' : selectedProgram ? 'Submit Answer' : 'Send'}
-                </motion.button>
+                <div className="flex gap-4">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
+                  >
+                    {loading ? 'Processing...' : selectedProgram ? 'Submit Answer' : 'Send'}
+                  </motion.button>
+                  {selectedProgram && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="button"
+                      onClick={() => submitAnswer('SKIP')}
+                      disabled={loading}
+                      className="flex-1 py-4 px-6 rounded-xl bg-gray-600 hover:bg-gray-700 text-white font-semibold transition-colors disabled:opacity-50"
+                    >
+                      Skip
+                    </motion.button>
+                  )}
+                </div>
               )}
             </motion.form>
           )}
