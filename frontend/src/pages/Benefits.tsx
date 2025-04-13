@@ -6,6 +6,7 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { saveAs } from 'file-saver';
 import { auth, db } from '../lib/firebase';
 import { analyzeBenefits, processFormAnswer, generateFormSummary } from '../lib/gemini';
+import { updateUserProfileWithFormAnswers } from '../lib/profileUtils';
 import type { ExtendedFormData } from '../lib/types';
 
 
@@ -27,18 +28,30 @@ export function Benefits() {
   const [formComplete, setFormComplete] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string>('');
+  const [isSkipping, setIsSkipping] = useState(false);
 
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-    (async () => {
+    const fetchProfile = async () => {
+      if (!auth.currentUser) {
+        console.error('No authenticated user found');
+        setLoading(false);
+        return;
+      }
       try {
         const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-        if (userDoc.exists()) setProfile(userDoc.data() as ExtendedFormData);
+        if (userDoc.exists()) {
+          setProfile(userDoc.data() as ExtendedFormData);
+        } else {
+          console.warn('No user profile found');
+        }
       } catch (err) {
         console.error('Error fetching profile:', err);
+      } finally {
+        setLoading(false);
       }
-    })();
+    };
+    fetchProfile();
   }, []);
 
   const selectProgram = (program: string) => {
@@ -573,26 +586,88 @@ export function Benefits() {
       const nextProgress = { ...formProgress, [currentQuestion]: answer };
       setFormProgress(nextProgress);
       const res = await processFormAnswer(selectedProgram!, currentQuestion, answer, nextProgress, profile!);
-
+  
       if (!res.valid) {
         setFeedback(`Please check your answer: ${res.feedback}`);
       } else if (res.complete) {
         setFormComplete(true);
         const summary = await generateFormSummary(selectedProgram!, nextProgress, profile!);
         setResults(summary);
-        await buildPdf(selectedProgram!, nextProgress, profile!);
+        
+        // Update the user's profile with any collected information
         if (auth.currentUser) {
-          await addDoc(collection(db, 'users', auth.currentUser.uid, 'formSubmissions'), {
-            program: selectedProgram,
-            answers: nextProgress,
-            submittedAt: serverTimestamp(),
-          });
+          try {
+            // Store form answers in the user's profile to avoid re-entering in future forms
+            const updatedProfile = await updateUserProfileWithFormAnswers(nextProgress, profile!);
+            setProfile(updatedProfile);
+            
+            // Also store the complete form submission
+            await addDoc(collection(db, 'users', auth.currentUser.uid, 'formSubmissions'), {
+              program: selectedProgram,
+              answers: nextProgress,
+              submittedAt: serverTimestamp(),
+            });
+          } catch (err) {
+            console.error('Error updating user profile:', err);
+            // Continue with PDF generation even if profile update fails
+          }
         }
+        
+        await buildPdf(selectedProgram!, nextProgress, profile!);
       } else {
+        // Update profile with the current answer even if form is not complete
+        if (auth.currentUser) {
+          try {
+            const updatedProfile = await updateUserProfileWithFormAnswers({ [currentQuestion]: answer }, profile!);
+            setProfile(updatedProfile);
+          } catch (err) {
+            console.error('Error updating user profile with current answer:', err);
+          }
+        }
         setCurrentQuestion(res.nextQuestion);
         setCurrentPrefill(res.prefill || null);
       }
     } catch (err) {
+      console.error('Error processing answer:', err);
+      setFeedback('An error occurred while processing your answer. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Function to handle forced skipping when the user is stuck
+  const forceSkipQuestion = async () => {
+    setLoading(true);
+    setFeedback('Skipping this question...');
+    
+    try {
+      // Create a modified version of processFormAnswer results to force moving to next question
+      const nextProgress = { ...formProgress, [currentQuestion]: "Skipped" };
+      setFormProgress(nextProgress);
+      
+      // Make the API call but ignore validation errors
+      const res = await processFormAnswer(selectedProgram!, currentQuestion, "Skipped", nextProgress, profile!);
+      
+      if (res.complete) {
+        setFormComplete(true);
+        const summary = await generateFormSummary(selectedProgram!, nextProgress, profile!);
+        setResults(summary);
+        await buildPdf(selectedProgram!, nextProgress, profile!);
+      } else {
+        // Always proceed to next question
+        setCurrentQuestion(res.nextQuestion);
+        setCurrentPrefill(res.prefill || null);
+        setFeedback(''); // Clear feedback after successful skip
+      }
+    } catch (err) {
+      console.error('Error during forced skip:', err);
+      
+      // If normal skip fails, try a more aggressive approach - just move to an empty question
+      // This is a fallback in case the Gemini API is being too strict
+      const nextQuestionGuess = `Question ${Object.keys(formProgress).length + 2}`; // Next question estimate
+      setCurrentQuestion(nextQuestionGuess);
+      setCurrentPrefill(null);
+      setFeedback('Question skipped. Proceeding with application.');
     } finally {
       setLoading(false);
     }
@@ -654,16 +729,13 @@ export function Benefits() {
               {selectedProgram ? (formComplete ? 'Application Complete' : 'Application Form') : 'Your Benefits Analysis'}
             </h3>
             <div className="prose prose-blue dark:text-white mb-2 max-w-none whitespace-pre-wrap">
-              {/* {results} */}
-              <div className="prose prose-blue dark:text-white mb-2 max-w-none whitespace-pre-wrap">
-                {results}
-              </div>
-              {feedback && (
-                <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900 rounded text-yellow-800 dark:text-yellow-200">
-                  {feedback}
-                </div>
-              )}
+              {results}
             </div>
+            {feedback && (
+              <div className="mt-2 p-3 bg-yellow-100 dark:bg-yellow-900 rounded text-yellow-800 dark:text-yellow-200">
+                {feedback}
+              </div>
+            )}
           </motion.div>
 
           {!formComplete && !askPrefill && (
@@ -716,7 +788,7 @@ export function Benefits() {
               ) : (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
-                    Ask a follow‑up question or enter a program name:
+                    Ask a followup question or enter a program name:
                   </label>
                   <input
                     type="text"

@@ -139,8 +139,9 @@ IMPORTANT: You must ask ALL relevant questions for a complete ${programName} app
 - Income verification questions
 - Any program-specific eligibility questions
 
-Do not skip any fields that would be required on an official government application, even common ones like address or date of birth.
-Use information from the user profile or previous form submissions when suggesting prefill values.
+When suggesting prefill values, prioritize using matching information from the user profile.
+Be as specific as possible when matching profile fields to form questions.
+For example, if asking for "First Name" and the profile has "firstName: John", suggest "John" as the prefilled value.
 
 Respond in the following format:
 NEXT_QUESTION: [first question]
@@ -157,19 +158,12 @@ User's answer: ${answer}
 Based on this information:
 1. Validate if the answer is appropriate for the question
 2. Determine the next logical question to ask
-3. IMPORTANT: You must ask ALL relevant questions for a complete ${programName} application, including but not limited to:
-   - Full name (first, middle, last)
-   - Date of birth
-   - Social Security Number (SSN)
-   - Permanent mailing address
-   - Contact information (phone, email)
-   - Household information
-   - Income verification questions
-   - Any program-specific eligibility questions
-
+3. IMPORTANT: You must ask ALL relevant questions for a complete ${programName} application
 4. Look for information in the user profile that can be used to prefill answers
-5. Consider if fields like date of birth, SSN, address, phone number, etc. have already been asked - if not, make sure to include them
-6. If all necessary information has been collected, indicate the form is complete
+   - Match profile fields to appropriate questions (e.g., "firstName" -> "What is your first name?")
+   - Be specific in matching profile fields to form questions
+   - If the profile contains relevant information for the next question, suggest it as a prefill
+5. If all necessary information has been collected, indicate the form is complete
 
 Respond in the following format:
 VALID: [true/false]
