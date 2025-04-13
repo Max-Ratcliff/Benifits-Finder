@@ -73,6 +73,19 @@ const defaultProfile: ExtendedFormData = {
   phoneNumber: ""
 };
 
+// Helper function to mask the SSN
+const maskSsn = (ssn: string | undefined): string => {
+  if (!ssn || ssn.length === 0) {
+    return '';
+  }
+  // Create a string of asterisks '*' for all characters except the last one
+  const maskedPart = 'X'.repeat(ssn.length - 1);
+  // Get the last character
+  const lastChar = ssn.slice(-1);
+  // Combine them
+  return maskedPart + lastChar;
+};
+
 export function Settings() {
   const [profile, setProfile] = useState<ExtendedFormData>(defaultProfile);
   const [loading, setLoading] = useState(true);
@@ -118,6 +131,13 @@ export function Settings() {
         ? { ...prev, financialAidTypes: currentTypes.filter((type) => type !== value) }
         : { ...prev, financialAidTypes: [...currentTypes, value] };
     });
+  };
+
+  // --- Handler to update the actual SSN ---
+  const handleSsnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // You might want to add validation/formatting here if needed
+    const newSsn = e.target.value;
+    setProfile((prev) => ({ ...prev, ssn: newSsn }));
   };
 
   const handleSave = async () => {
@@ -299,12 +319,10 @@ export function Settings() {
             </label>
             <input
               type="text"
-              value={profile.ssn}
-              onChange={(e) =>
-                setProfile((prev) => ({ ...prev, ssn: e.target.value }))
-              }
+              value={maskSsn(profile.ssn)}
+              onChange={handleSsnChange}
               placeholder="Enter your SSN"
-              className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
+              className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white font-mono"
             />
           </div>
         </div>
