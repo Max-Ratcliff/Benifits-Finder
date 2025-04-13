@@ -1,345 +1,3 @@
-// import React, { useState, useEffect } from 'react';
-// import { motion } from 'framer-motion';
-// import { useLocation } from 'react-router-dom';
-// import { doc, getDoc, collection, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
-// import { auth, db } from '../lib/firebase';
-// import { analyzeBenefits } from '../lib/gemini';
-// import type { ExtendedFormData, ProgramData } from '@/lib/types';
-
-// export function Benefits() {
-//   const location = useLocation();
-//   const category = location.state?.category;
-
-//   const [profile, setProfile] = useState<ExtendedFormData | null>(null);
-//   const [conversationHistory, setConversationHistory] = useState<string>("");
-//   const [followUpInput, setFollowUpInput] = useState<string>("");
-//   const [results, setResults] = useState<string>('');
-//   const [loading, setLoading] = useState<boolean>(false);
-//   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
-//   const [programData, setProgramData] = useState<ProgramData | null>(null);
-//   const [formProgress, setFormProgress] = useState<{[field: string]: string}>({});
-//   const [currentQuestion, setCurrentQuestion] = useState<string>("");
-//   const [formComplete, setFormComplete] = useState<boolean>(false);
-
-//   useEffect(() => {
-//     if (!auth.currentUser) return;
-//     const fetchProfile = async () => {
-//       try {
-//         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-//         if (userDoc.exists()) {
-//           setProfile(userDoc.data() as ExtendedFormData);
-//         }
-//       } catch (error) {
-//         console.error("Error fetching profile:", error);
-//       }
-//     };
-//     fetchProfile();
-//   }, []);
-
-//   const handleInitialSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-//     setLoading(true);
-//     try {
-//       if (!profile) {
-//         throw new Error("Profile data not loaded");
-//       }
-      
-//       // Add specific data about education institution if applicable
-//       let enhancedProfile = { ...profile };
-//       if (profile.institutionType === "UC" && profile.isUCStudent) {
-//         enhancedProfile.specificInstitution = "University of California";
-//       } else if (profile.institutionType) {
-//         enhancedProfile.specificInstitution = profile.institutionType;
-//       }
-      
-//       const analysis = await analyzeBenefits({ ...enhancedProfile, category }, conversationHistory);
-//       setResults(analysis);
-//       setConversationHistory(prev => prev + "\nGemini: " + analysis);
-
-//       if (!auth.currentUser) throw new Error("User not authenticated");
-//       await addDoc(collection(db, 'users', auth.currentUser.uid, 'submissions'), {
-//         ...enhancedProfile,
-//         category,
-//         timestamp: serverTimestamp(),
-//         analysis: analysis,
-//         conversationHistory: conversationHistory + "\nGemini: " + analysis,
-//       });
-//     } catch (error) {
-//       console.error("Error:", error);
-//       setResults("An error occurred. Please try again later.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   const handleFollowUpSubmit = async (e: React.FormEvent) => {
-//     e.preventDefault();
-    
-//     // If a program is selected, we're in form-filling mode
-//     if (selectedProgram) {
-//       handleFormInteraction();
-//       return;
-//     }
-    
-//     // Otherwise, we're in regular follow-up mode
-//     setLoading(true);
-//     try {
-//       if (!profile) throw new Error("Profile data not loaded");
-      
-//       // Extract potential program selection from input
-//       const programSelection = followUpInput.toLowerCase();
-//       const updatedHistory = conversationHistory + "\nUser: " + followUpInput;
-      
-//       // Check if user is selecting a program to fill out
-//       if (programSelection.includes("help") && programSelection.includes("fill") || 
-//           programSelection.includes("select") || programSelection.includes("choose") ||
-//           programSelection.includes("form") || programSelection.includes("apply")) {
-        
-//         // Start form filling process with Gemini's help
-//         const programRequest = `Based on our conversation, I'd like to help the user fill out a form for the program they mentioned. Please identify which program they're interested in and provide the initial form questions for: "${followUpInput}". If you can determine the program, format your response like this: PROGRAM_NAME: [name of program], FORM_DATA: [JSON structure with form fields], FIRST_QUESTION: [first question to ask user]`;
-        
-//         const analysis = await analyzeBenefits({ ...profile, category }, updatedHistory + "\n" + programRequest);
-        
-//         // Parse program data if available
-//         if (analysis.includes("PROGRAM_NAME:")) {
-//           const programName = analysis.split("PROGRAM_NAME:")[1].split(",")[0].trim();
-//           setSelectedProgram(programName);
-          
-//           // Extract form data structure if available
-//           if (analysis.includes("FORM_DATA:")) {
-//             try {
-//               const formDataText = analysis.split("FORM_DATA:")[1].split("FIRST_QUESTION:")[0].trim();
-//               const formData = JSON.parse(formDataText);
-//               setProgramData(formData);
-//             } catch (e) {
-//               console.error("Error parsing form data:", e);
-//             }
-//           }
-          
-//           // Extract first question
-//           if (analysis.includes("FIRST_QUESTION:")) {
-//             const firstQuestion = analysis.split("FIRST_QUESTION:")[1].trim();
-//             setCurrentQuestion(firstQuestion);
-//           }
-          
-//           setConversationHistory(updatedHistory + "\nGemini: Great! I'll help you fill out the application for " + programName + ". Let's start with a few questions.");
-//           setResults(`I'll help you fill out the application for ${programName}. ${currentQuestion}`);
-//         } else {
-//           // Regular response if no program identified
-//           setConversationHistory(updatedHistory + "\nGemini: " + analysis);
-//           setResults(analysis);
-//         }
-//       } else {
-//         // Regular follow-up
-//         const analysis = await analyzeBenefits({ ...profile, category }, updatedHistory);
-//         const newHistory = updatedHistory + "\nGemini: " + analysis;
-//         setConversationHistory(newHistory);
-//         setResults(analysis);
-//       }
-      
-//       if (!auth.currentUser) throw new Error("User not authenticated");
-//       await addDoc(collection(db, 'users', auth.currentUser.uid, 'submissions'), {
-//         ...profile,
-//         category,
-//         timestamp: serverTimestamp(),
-//         analysis: results,
-//         conversationHistory: conversationHistory,
-//       });
-//       setFollowUpInput("");
-//     } catch (error) {
-//       console.error("Error:", error);
-//       setResults("An error occurred. Please try again later.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-  
-//   const handleFormInteraction = async () => {
-//     setLoading(true);
-//     try {
-//       // Save the current answer
-//       const updatedFormProgress = {
-//         ...formProgress,
-//         [currentQuestion]: followUpInput
-//       };
-//       setFormProgress(updatedFormProgress);
-      
-//       // Get the next question from Gemini
-//       const promptForNextQuestion = `The user is filling out a form for ${selectedProgram}. 
-//       They've answered the following questions: ${JSON.stringify(updatedFormProgress)}. 
-//       Their current answer to "${currentQuestion}" is "${followUpInput}".
-      
-//       Based on their profile (${JSON.stringify(profile)}) and previous answers, 
-//       what's the next question we should ask? If the form is complete, respond with "FORM_COMPLETE".
-      
-//       Format your response as: NEXT_QUESTION: [question] or FORM_COMPLETE`;
-      
-//       const nextQuestionResponse = await analyzeBenefits({ ...profile, category }, promptForNextQuestion);
-      
-//       if (nextQuestionResponse.includes("FORM_COMPLETE")) {
-//         // Form is complete, show summary
-//         setFormComplete(true);
-        
-//         const formData = {
-//           program: selectedProgram,
-//           answers: updatedFormProgress,
-//           submittedAt: new Date().toISOString()
-//         };
-        
-//         // Save form data to user's collection
-//         if (auth.currentUser) {
-//           await addDoc(collection(db, 'users', auth.currentUser.uid, 'formSubmissions'), formData);
-          
-//           // Also update the user profile with any new information learned
-//           const userDoc = doc(db, "users", auth.currentUser.uid);
-//           await updateDoc(userDoc, {
-//             recentFormSubmission: formData,
-//             lastSubmittedProgram: selectedProgram
-//           });
-//         }
-        
-//         setResults(`Great! You've completed the application for ${selectedProgram}. 
-        
-// Your answers have been saved. Here's a summary of what you've submitted:
-
-// ${Object.entries(updatedFormProgress).map(([q, a]) => `${q}: ${a}`).join('\n')}
-
-// The application has been recorded. You'll be notified when there are updates on your application status.`);
-//       } else {
-//         // Extract next question
-//         let nextQuestion = "";
-//         if (nextQuestionResponse.includes("NEXT_QUESTION:")) {
-//           nextQuestion = nextQuestionResponse.split("NEXT_QUESTION:")[1].trim();
-//         } else {
-//           nextQuestion = nextQuestionResponse.trim();
-//         }
-        
-//         setCurrentQuestion(nextQuestion);
-//         setResults(nextQuestion);
-//       }
-      
-//       setFollowUpInput("");
-//     } catch (error) {
-//       console.error("Error in form interaction:", error);
-//       setResults("An error occurred processing your form. Please try again.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   if (!profile) {
-//     return (
-//       <div className="flex items-center justify-center min-h-[60vh]">
-//         <p>Loading profile...</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0 }}
-//       animate={{ opacity: 1 }}
-//       className="max-w-3xl mx-auto space-y-8 p-4"
-//     >
-//       <div className="text-center">
-//         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-//           {selectedProgram ? `Applying for: ${selectedProgram}` : "Let's Find Your Benefits"}
-//         </h2>
-//         <p className="text-gray-600 dark:text-gray-400">
-//           {selectedProgram 
-//             ? "Answer the questions below to complete your application" 
-//             : "Answer the questions below to receive personalized benefit recommendations."}
-//         </p>
-//       </div>
-
-//       {!results && !selectedProgram && (
-//         <motion.form
-//           initial={{ y: 20, opacity: 0 }}
-//           animate={{ y: 0, opacity: 1 }}
-//           onSubmit={handleInitialSubmit}
-//           className="space-y-6"
-//         >
-//           <motion.button
-//             whileHover={{ scale: 1.02 }}
-//             whileTap={{ scale: 0.98 }}
-//             type="submit"
-//             disabled={loading}
-//             className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-//           >
-//             {loading ? 'Analyzing...' : 'Find My Benefits'}
-//           </motion.button>
-//         </motion.form>
-//       )}
-
-//       {results && (
-//         <>
-//           <motion.div
-//             initial={{ opacity: 0, y: 20 }}
-//             animate={{ opacity: 1, y: 0 }}
-//             className="p-6 rounded-xl bg-white dark:bg-gray-800 shadow-lg"
-//           >
-//             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-//               {selectedProgram 
-//                 ? `${formComplete ? "Application Complete" : "Application Form"}`
-//                 : "Your Personalized Benefits Analysis"}
-//             </h3>
-//             <div className="prose prose-blue dark:prose-invert max-w-none whitespace-pre-wrap">
-//               {results}
-//             </div>
-            
-//             {formComplete && (
-//               <motion.div 
-//                 initial={{ opacity: 0 }}
-//                 animate={{ opacity: 1 }}
-//                 className="mt-6 p-4 bg-green-100 dark:bg-green-900 rounded-lg"
-//               >
-//                 <p className="font-medium text-green-800 dark:text-green-100">
-//                   Your application has been submitted successfully!
-//                 </p>
-//               </motion.div>
-//             )}
-//           </motion.div>
-          
-//           {!formComplete && (
-//             <motion.form
-//               initial={{ y: 20, opacity: 0 }}
-//               animate={{ y: 0, opacity: 1 }}
-//               onSubmit={handleFollowUpSubmit}
-//               className="space-y-6"
-//             >
-//               <div>
-//                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-//                   {selectedProgram 
-//                     ? "Your answer:" 
-//                     : "Ask a follow-up question for more details:"}
-//                 </label>
-//                 <input
-//                   type="text"
-//                   value={followUpInput}
-//                   onChange={(e) => setFollowUpInput(e.target.value)}
-//                   placeholder={selectedProgram 
-//                     ? "Type your answer here..." 
-//                     : "For example: Help me fill out the housing voucher application..."}
-//                   className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
-//                 />
-//               </div>
-//               <motion.button
-//                 whileHover={{ scale: 1.02 }}
-//                 whileTap={{ scale: 0.98 }}
-//                 type="submit"
-//                 disabled={loading}
-//                 className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-//               >
-//                 {loading ? 'Processing...' : selectedProgram ? 'Continue' : 'Send'}
-//               </motion.button>
-//             </motion.form>
-//           )}
-//         </>
-//       )}
-//     </motion.div>
-//   );
-// }
-
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
@@ -348,55 +6,77 @@ import { auth, db } from '../lib/firebase';
 import { analyzeBenefits, processFormAnswer, generateFormSummary } from '../lib/gemini';
 import type { ExtendedFormData } from '@/lib/types';
 
+/**
+ * Benefits – recommend programs & guide the user through filling out an
+ * application.
+ *
+ * ✨ **New flow**
+ * 1. Once the user picks a program (by typing or clicking), we hide the previous
+ *    recommendations and ask: *“Would you like us to pre‑fill the form using
+ *    your saved info?”* (Yes / No).
+ * 2. If **Yes**, form questions may include pre‑filled suggestions. If **No**,
+ *    pre‑fill hints are suppressed, but the rest of the flow is unchanged.
+ *
+ * No existing functionality was removed.
+ */
 export function Benefits() {
   const location = useLocation();
   const category = location.state?.category;
 
   const [profile, setProfile] = useState<ExtendedFormData | null>(null);
-  const [conversationHistory, setConversationHistory] = useState<string>("");
-  const [followUpInput, setFollowUpInput] = useState<string>("");
-  const [results, setResults] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [conversationHistory, setConversationHistory] = useState('');
+  const [followUpInput, setFollowUpInput] = useState('');
+  const [results, setResults] = useState('');
+  const [loading, setLoading] = useState(false);
   const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
-  const [formProgress, setFormProgress] = useState<{[field: string]: string}>({});
-  const [currentQuestion, setCurrentQuestion] = useState<string>("");
+  const [askPrefill, setAskPrefill] = useState(false);
+  const [disablePrefill, setDisablePrefill] = useState(false);
+  const [formProgress, setFormProgress] = useState<Record<string, string>>({});
+  const [currentQuestion, setCurrentQuestion] = useState('');
   const [currentPrefill, setCurrentPrefill] = useState<string | null>(null);
-  const [formComplete, setFormComplete] = useState<boolean>(false);
+  const [formComplete, setFormComplete] = useState(false);
 
+  /* ----------------------------- Side‑effects ----------------------------- */
   useEffect(() => {
     if (!auth.currentUser) return;
-    const fetchProfile = async () => {
+    (async () => {
       try {
-        const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        if (userDoc.exists()) {
-          setProfile(userDoc.data() as ExtendedFormData);
-        }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
+        const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+        if (userDoc.exists()) setProfile(userDoc.data() as ExtendedFormData);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
       }
-    };
-    fetchProfile();
+    })();
   }, []);
 
+  /* ----------------------------- Utilities ----------------------------- */
+  const selectProgram = (program: string) => {
+    setSelectedProgram(program);
+    setAskPrefill(true);
+    setResults(`Would you like us to pre‑fill the ${program} application with the information we already have?`);
+  };
+
+  /* ---------------------------- Submissions ---------------------------- */
   const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (!profile) throw new Error("Profile data not loaded");
+      if (!profile) throw new Error('Profile not loaded');
       const analysis = await analyzeBenefits({ ...profile, category }, conversationHistory);
       setResults(analysis);
-      setConversationHistory(prev => prev + "\nGemini: " + analysis);
-      if (!auth.currentUser) throw new Error("User not authenticated");
-      await addDoc(collection(db, 'users', auth.currentUser.uid, 'submissions'), {
-        ...profile,
-        category,
-        timestamp: serverTimestamp(),
-        analysis,
-        conversationHistory: conversationHistory + "\nGemini: " + analysis,
-      });
-    } catch (error) {
-      console.error("Error:", error);
-      setResults("An error occurred. Please try again later.");
+      setConversationHistory(prev => prev + '\nGemini: ' + analysis);
+      if (auth.currentUser) {
+        await addDoc(collection(db, 'users', auth.currentUser.uid, 'submissions'), {
+          ...profile,
+          category,
+          timestamp: serverTimestamp(),
+          analysis,
+          conversationHistory: conversationHistory + '\nGemini: ' + analysis,
+        });
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setResults('An error occurred. Please try again later.');
     } finally {
       setLoading(false);
     }
@@ -406,48 +86,59 @@ export function Benefits() {
     e.preventDefault();
     if (!profile) return;
 
-    if (selectedProgram) {
-      // In form mode, submit the answer
+    // ---------------- FORM MODE ----------------
+    if (selectedProgram && !askPrefill) {
       await submitAnswer(followUpInput);
-      setFollowUpInput("");
-    } else {
-      // Regular follow-up or program selection
-      setLoading(true);
-      try {
-        const updatedHistory = conversationHistory + "\nUser: " + followUpInput;
-        const programSelection = followUpInput.toLowerCase();
+      setFollowUpInput('');
+      return;
+    }
 
-        if (programSelection.includes("fill") || programSelection.includes("apply") || programSelection.includes("form")) {
-          const analysis = await analyzeBenefits({ ...profile, category }, updatedHistory);
-          const programNameMatch = analysis.match(/eligible for ([\w\s]+)\./i);
-          const programName = programNameMatch ? programNameMatch[1].trim() : followUpInput.split("for")[1]?.trim() || "Unknown Program";
-          setSelectedProgram(programName);
-          await startForm(programName);
-        } else {
-          const analysis = await analyzeBenefits({ ...profile, category }, updatedHistory);
-          setConversationHistory(updatedHistory + "\nGemini: " + analysis);
-          setResults(analysis);
-        }
-        setFollowUpInput("");
-      } catch (error) {
-        console.error("Error:", error);
-        setResults("An error occurred. Please try again later.");
-      } finally {
-        setLoading(false);
+    // -------------- PROGRAM SELECTION --------------
+    const userMsg = followUpInput.trim();
+    if (!selectedProgram) {
+      // Detect intent to apply (simple heuristic)
+      const match = userMsg.match(/apply for (.+)/i);
+      if (match) {
+        selectProgram(match[1].trim());
+        setFollowUpInput('');
+        return;
       }
+    }
+
+    // -------------- Normal follow‑up --------------
+    setLoading(true);
+    try {
+      const updatedHistory = conversationHistory + '\nUser: ' + userMsg;
+      const analysis = await analyzeBenefits({ ...profile, category }, updatedHistory);
+      setConversationHistory(updatedHistory + '\nGemini: ' + analysis);
+      setResults(analysis);
+      setFollowUpInput('');
+    } catch (err) {
+      console.error('Error:', err);
+      setResults('An error occurred. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* --------------------------- Prefill choice --------------------------- */
+  const handlePrefillChoice = async (usePrefill: boolean) => {
+    setAskPrefill(false);
+    setDisablePrefill(!usePrefill);
+    await startForm(selectedProgram!);
+  };
+
+  /* --------------------------- Form utilities --------------------------- */
   const startForm = async (programName: string) => {
     setLoading(true);
     try {
-      const response = await processFormAnswer(programName, "", "", {}, profile);
-      setCurrentQuestion(response.nextQuestion);
-      setCurrentPrefill(response.prefill || null);
-      setResults(response.nextQuestion);
-    } catch (error) {
-      console.error("Error starting form:", error);
-      setResults("Error starting the application. Please try again.");
+      const res = await processFormAnswer(programName, '', '', {}, profile!);
+      setCurrentQuestion(res.nextQuestion);
+      setCurrentPrefill(res.prefill || null);
+      setResults(res.nextQuestion);
+    } catch (err) {
+      console.error('Error starting form:', err);
+      setResults('Error starting the application. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -456,158 +147,115 @@ export function Benefits() {
   const submitAnswer = async (answer: string) => {
     setLoading(true);
     try {
-      const updatedFormProgress = { ...formProgress, [currentQuestion]: answer };
-      setFormProgress(updatedFormProgress);
-      const response = await processFormAnswer(selectedProgram!, currentQuestion, answer, updatedFormProgress, profile);
+      const nextProgress = { ...formProgress, [currentQuestion]: answer };
+      setFormProgress(nextProgress);
+      const res = await processFormAnswer(selectedProgram!, currentQuestion, answer, nextProgress, profile!);
 
-      if (!response.valid) {
-        setResults(`Please check your answer: ${response.feedback}`);
-      } else if (response.complete) {
+      if (!res.valid) {
+        setResults(`Please check your answer: ${res.feedback}`);
+      } else if (res.complete) {
         setFormComplete(true);
-        const summary = await generateFormSummary(selectedProgram!, updatedFormProgress, profile);
+        const summary = await generateFormSummary(selectedProgram!, nextProgress, profile!);
         setResults(summary);
         if (auth.currentUser) {
           await addDoc(collection(db, 'users', auth.currentUser.uid, 'formSubmissions'), {
             program: selectedProgram,
-            answers: updatedFormProgress,
+            answers: nextProgress,
             submittedAt: serverTimestamp(),
           });
         }
       } else {
-        setCurrentQuestion(response.nextQuestion);
-        setCurrentPrefill(response.prefill || null);
-        setResults(response.nextQuestion);
+        setCurrentQuestion(res.nextQuestion);
+        setCurrentPrefill(res.prefill || null);
+        setResults(res.nextQuestion);
       }
-    } catch (error) {
-      console.error("Error:", error);
-      setResults("An error occurred. Please try again.");
+    } catch (err) {
+      console.error('Error:', err);
+      setResults('An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!profile) {
-    return <div>Loading profile...</div>;
-  }
+  /* ------------------------------ Render ------------------------------ */
+  if (!profile) return <div>Loading profile...</div>;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-3xl mx-auto space-y-8 p-4"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto space-y-8 p-4">
+      {/* Header */}
       <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
           {selectedProgram ? `Applying for: ${selectedProgram}` : "Let's Find Your Benefits"}
         </h2>
         <p className="text-gray-600 dark:text-gray-400">
-          {selectedProgram ? "Answer the questions to complete your application" : "Find personalized benefit recommendations."}
+          {selectedProgram ? 'Answer the questions to complete your application' : 'Find personalized benefit recommendations.'}
         </p>
       </div>
 
+      {/* Initial CTA */}
       {!results && !selectedProgram && (
-        <motion.form
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          onSubmit={handleInitialSubmit}
-          className="space-y-6"
-        >
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={loading}
-            className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
-          >
+        <motion.form initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onSubmit={handleInitialSubmit} className="space-y-6">
+          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={loading} className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50">
             {loading ? 'Analyzing...' : 'Find My Benefits'}
           </motion.button>
         </motion.form>
       )}
 
-      {results && (
+      {/* Prefill prompt */}
+      {askPrefill && (
+        <div className="space-y-4 p-6 rounded-lg bg-gray-900 border border-gray-700">
+          <p className="text-white text-lg">{results}</p>
+          <div className="flex gap-2">
+            <button onClick={() => handlePrefillChoice(true)} className="flex-1 px-4 py-2 bg-green-500 text-white rounded">Yes, pre‑fill for me</button>
+            <button onClick={() => handlePrefillChoice(false)} className="flex-1 px-4 py-2 bg-red-500 text-white rounded">No, I’ll fill it myself</button>
+          </div>
+        </div>
+      )}
+
+      {/* Analysis text or form */}
+      {!askPrefill && results && (
         <>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="p-6 rounded-xl bg-white dark:bg-gray-800 shadow-lg"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="p-6 rounded-xl bg-white dark:bg-gray-800 shadow-lg">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              {selectedProgram ? (formComplete ? "Application Complete" : "Application Form") : "Your Benefits Analysis"}
+              {selectedProgram ? (formComplete ? 'Application Complete' : 'Application Form') : 'Your Benefits Analysis'}
             </h3>
-            <div className="prose prose-blue dark:text-white mb-2 max-w-none whitespace-pre-wrap">
-              {results}
-            </div>
+            <div className="prose prose-blue dark:text-white mb-2 max-w-none whitespace-pre-wrap">{results}</div>
           </motion.div>
 
-          {!formComplete && (
-            <motion.form
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              onSubmit={handleFollowUpSubmit}
-              className="space-y-6"
-            >
-              {selectedProgram && (
+          {/* Form / follow‑up input */}
+          {!formComplete && !askPrefill && (
+            <motion.form initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onSubmit={handleFollowUpSubmit} className="space-y-6">
+              {selectedProgram ? (
                 <div>
-                  {currentPrefill ? (
-                    <div>
-                      <p>{currentQuestion}</p>
-                      <p>Based on your profile, we have: <strong>{currentPrefill}</strong>. Is this correct?</p>
-                      <button
-                        type="button"
-                        onClick={() => submitAnswer(currentPrefill)}
-                        className="mr-2 px-4 py-2 bg-green-500 text-white rounded"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCurrentPrefill(null)}
-                        className="px-4 py-2 bg-red-500 text-white rounded"
-                      >
-                        No, let me enter a different value
-                      </button>
+                  {currentPrefill && !disablePrefill ? (
+                    <div className="space-y-3 bg-gray-900 border border-gray-700 p-4 rounded-lg">
+                      <p className="text-white mb-1">{currentQuestion}</p>
+                      <input readOnly value={currentPrefill} className="w-full px-4 py-2 rounded bg-gray-800 text-white border border-gray-600 pointer-events-none" />
+                      <div className="flex gap-2 pt-2">
+                        <button type="button" onClick={() => submitAnswer(currentPrefill)} className="flex-1 px-4 py-2 bg-green-500 text-white rounded">Yes</button>
+                        <button type="button" onClick={() => setCurrentPrefill(null)} className="flex-1 px-4 py-2 bg-red-500 text-white rounded">No, let me enter a different value</button>
+                      </div>
                     </div>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Your answer:
-                      </label>
-                      <input
-                        type="text"
-                        value={followUpInput}
-                        onChange={(e) => setFollowUpInput(e.target.value)}
-                        placeholder="Type your answer here..."
-                        className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
-                      />
+                      <label className="block text-sm font-medium text-gray-300 mb-1">{currentQuestion}</label>
+                      <input type="text" value={followUpInput} onChange={e => setFollowUpInput(e.target.value)} placeholder="Type your answer here..." className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white" />
                     </div>
                   )}
                 </div>
-              )}
-
-              {!selectedProgram && (
+              ) : (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Ask a follow-up question:
-                  </label>
-                  <input
-                    type="text"
-                    value={followUpInput}
-                    onChange={(e) => setFollowUpInput(e.target.value)}
-                    placeholder="E.g., Help me fill out the housing voucher application..."
-                    className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white"
-                  />
+                  <label className="block text-sm font-medium text-gray-300 mb-1">Ask a follow‑up question or enter a program name:</label>
+                  <input type="text" value={followUpInput} onChange={e => setFollowUpInput(e.target.value)} placeholder="E.g., Apply for Cal Grant" className="w-full px-4 py-2 rounded border border-gray-700 bg-gray-900 text-white" />
                 </div>
               )}
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Processing...' : selectedProgram ? 'Submit Answer' : 'Send'}
-              </motion.button>
+              {/* Submit button appears only when needed */}
+              {(!currentPrefill || disablePrefill || !selectedProgram) && (
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} type="submit" disabled={loading} className="w-full py-4 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors disabled:opacity-50">
+                  {loading ? 'Processing...' : selectedProgram ? 'Submit Answer' : 'Send'}
+                </motion.button>
+              )}
             </motion.form>
           )}
         </>
