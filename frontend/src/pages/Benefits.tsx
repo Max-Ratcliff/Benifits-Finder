@@ -47,139 +47,28 @@ export function Benefits() {
     setResults(`Would you like us to pre-fill the ${program} application with the information we already have?`);
   };
 
-  // const buildPdf = async (program: string, answers: Record<string, string>, user: ExtendedFormData) => {
-  //   const pdfDoc = await PDFDocument.create();
-  
-  //   // Constants for layout
-  //   const PAGE_WIDTH = 612; // Standard letter width in points
-  //   const PAGE_HEIGHT = 792; // Standard letter height in points
-  //   const MARGIN = 50;
-  //   const VALUE_X = 250; // X-position for values
-  //   const TITLE_SIZE = 18;
-  //   const SECTION_HEADER_SIZE = 14;
-  //   const TEXT_SIZE = 12;
-  //   const LINE_HEIGHT = 15;
-  
-  //   let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  //   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  //   const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  //   let cursor = PAGE_HEIGHT - MARGIN;
-  
-  //   // Helper function to draw the title
-  //   const drawTitle = (text: string) => {
-  //     const textWidth = boldFont.widthOfTextAtSize(text, TITLE_SIZE);
-  //     const x = (PAGE_WIDTH - textWidth) / 2; // Center the title
-  //     page.drawText(text, {
-  //       x,
-  //       y: cursor,
-  //       size: TITLE_SIZE,
-  //       font: boldFont,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //     cursor -= TITLE_SIZE + 20; // Extra spacing after title
-  //   };
-  
-  //   // Helper function to draw section headers
-  //   const drawSectionHeader = (text: string) => {
-  //     cursor -= 10; // Space before header
-  //     if (cursor - SECTION_HEADER_SIZE < MARGIN) {
-  //       page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  //       cursor = PAGE_HEIGHT - MARGIN;
-  //     }
-  //     page.drawText(text, {
-  //       x: 50,
-  //       y: cursor,
-  //       size: SECTION_HEADER_SIZE,
-  //       font: boldFont,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //     cursor -= SECTION_HEADER_SIZE + 10; // Space after header
-  //   };
-  
-  //   // Helper function to draw label-value pairs
-  //   const drawEntry = (label: string, value: string) => {
-  //     if (cursor - TEXT_SIZE < MARGIN) {
-  //       page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  //       cursor = PAGE_HEIGHT - MARGIN;
-  //     }
-  //     // Draw label
-  //     page.drawText(label + ':', {
-  //       x: 50,
-  //       y: cursor,
-  //       size: TEXT_SIZE,
-  //       font,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //     // Draw value
-  //     page.drawText(value, {
-  //       x: VALUE_X,
-  //       y: cursor,
-  //       size: TEXT_SIZE,
-  //       font,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //     // Draw underline under value
-  //     page.drawLine({
-  //       start: { x: VALUE_X, y: cursor - 2 },
-  //       end: { x: PAGE_WIDTH - MARGIN, y: cursor - 2 },
-  //       thickness: 1,
-  //       color: rgb(0.5, 0.5, 0.5), // Gray underline
-  //     });
-  //     cursor -= LINE_HEIGHT;
-  //   };
-  
-  //   // Helper function to draw horizontal lines
-  //   const drawHorizontalLine = () => {
-  //     if (cursor - 10 < MARGIN) {
-  //       page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-  //       cursor = PAGE_HEIGHT - MARGIN;
-  //     }
-  //     page.drawLine({
-  //       start: { x: 50, y: cursor },
-  //       end: { x: PAGE_WIDTH - 50, y: cursor },
-  //       thickness: 1,
-  //       color: rgb(0, 0, 0),
-  //     });
-  //     cursor -= 10;
-  //   };
-  
-  //   // Build the PDF content
-  //   drawTitle(`Application for ${program}`);
-  //   drawSectionHeader('Prefilled from your profile');
-  //   Object.entries(user).forEach(([key, value]) => {
-  //     drawEntry(key, String(value));
-  //   });
-  //   drawHorizontalLine();
-  //   drawSectionHeader('Your answers');
-  //   Object.entries(answers).forEach(([question, answer]) => {
-  //     drawEntry(question, answer);
-  //   });
-  
-  //   // Save and generate download URL
-  //   const pdfBytes = await pdfDoc.save();
-  //   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-  //   const url = URL.createObjectURL(blob);
-  //   setDownloadUrl(url);
-  // };
   const buildPdf = async (program: string, answers: Record<string, string>, user: ExtendedFormData) => {
     const pdfDoc = await PDFDocument.create();
   
     // Layout constants - adjusted for government form style
     const PAGE_WIDTH = 612;  // Standard letter width in points (8.5 inches)
     const PAGE_HEIGHT = 792; // Standard letter height in points (11 inches)
-    const MARGIN = 40;       // Smaller margins like government forms
+    const MARGIN = 40;       // Margins
     const LABEL_X = 30;      // X-position for labels, closer to left margin
     const VALUE_X = 250;     // X-position for values
-    const TITLE_SIZE = 14;   // Smaller title size like government forms
+    const TITLE_SIZE = 14;   // Title size
     const HEADER_SIZE = 12;  // Font size for headers
-    const TEXT_SIZE = 10;    // Smaller text size like government forms
-    const LINE_HEIGHT = 20;  // Increased line height for form sections
+    const TEXT_SIZE = 10;    // Text size
+    const LINE_HEIGHT = 20;  // Line height for form sections
     const CHECKBOX_SIZE = 12; // Size of checkboxes
+    const CHECKBOX_SPACING = 20; // Space between checkboxes
   
     let page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     let cursor = PAGE_HEIGHT - MARGIN;
+    let currentPage = 1;
+    let totalPages = 1; // Will be updated later
   
     // Helper function to draw page header
     const drawPageHeader = () => {
@@ -209,8 +98,21 @@ export function Benefits() {
       cursor = PAGE_HEIGHT - 55;
     };
   
+    // Helper function to add a new page when needed
+    const addNewPageIfNeeded = (spaceNeeded: number) => {
+      if (cursor - spaceNeeded < MARGIN) {
+        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+        currentPage++;
+        totalPages = Math.max(totalPages, currentPage);
+        drawPageHeader();
+        return true;
+      }
+      return false;
+    };
+  
     // Helper function to draw title
     const drawTitle = (text: string) => {
+      addNewPageIfNeeded(TITLE_SIZE + 15);
       page.drawText(text.toUpperCase(), {
         x: MARGIN,
         y: cursor,
@@ -223,7 +125,13 @@ export function Benefits() {
   
     // Helper function to draw instructions
     const drawInstructions = (text: string) => {
-      const lines = splitTextIntoLines(text, font, TEXT_SIZE, PAGE_WIDTH - MARGIN * 2);
+      const maxWidth = PAGE_WIDTH - (2 * MARGIN);
+      const lines = splitTextIntoLines(text, font, TEXT_SIZE, maxWidth);
+      
+      // Check if we need a new page
+      const totalHeight = lines.length * (TEXT_SIZE + 5) + 5;
+      addNewPageIfNeeded(totalHeight);
+      
       lines.forEach(line => {
         page.drawText(line, {
           x: MARGIN,
@@ -239,10 +147,7 @@ export function Benefits() {
   
     // Helper function to draw section headers
     const drawSectionHeader = (text: string) => {
-      if (cursor - HEADER_SIZE < MARGIN) {
-        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        drawPageHeader();
-      }
+      addNewPageIfNeeded(HEADER_SIZE + 15);
       page.drawText(text, {
         x: MARGIN,
         y: cursor,
@@ -253,108 +158,171 @@ export function Benefits() {
       cursor -= HEADER_SIZE + 10;
     };
   
-    // Helper function to draw label-value pairs
-    const drawFormField = (label: string, value: string, withCheckbox = false) => {
-      if (cursor - TEXT_SIZE - 5 < MARGIN) {
-        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        drawPageHeader();
-      }
+    // Helper function to draw a form field with checkbox
+    const drawFormFieldWithCheckbox = (label: string, value: string) => {
+      addNewPageIfNeeded(TEXT_SIZE + LINE_HEIGHT);
       
-      // Draw label
-      page.drawText(`${label}:`, {
-        x: LABEL_X,
+      // Split label into multiple lines if needed
+      const maxLabelWidth = VALUE_X - LABEL_X - 10; // Leave some space between label and checkboxes
+      const labelLines = splitTextIntoLines(label, font, TEXT_SIZE, maxLabelWidth);
+      
+      // Draw label lines
+      let labelCursor = cursor;
+      labelLines.forEach(line => {
+        page.drawText(`${line}:`, {
+          x: LABEL_X,
+          y: labelCursor,
+          size: TEXT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+        });
+        labelCursor -= TEXT_SIZE + 5;
+      });
+      
+      // Calculate positions for checkboxes to prevent overlap
+      const yesCheckboxX = VALUE_X;
+      const yesTextX = yesCheckboxX + CHECKBOX_SIZE + 5;
+      const noCheckboxX = yesTextX + 30;
+      const noTextX = noCheckboxX + CHECKBOX_SIZE + 5;
+      
+      // Draw YES checkbox
+      page.drawRectangle({
+        x: yesCheckboxX,
+        y: cursor - 2,
+        width: CHECKBOX_SIZE,
+        height: CHECKBOX_SIZE,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+      
+      // Draw YES text
+      page.drawText("YES", {
+        x: yesTextX,
         y: cursor,
         size: TEXT_SIZE,
         font: font,
         color: rgb(0, 0, 0),
       });
       
-      if (withCheckbox) {
-        // Draw checkbox
-        page.drawRectangle({
-          x: VALUE_X - 30,
-          y: cursor - 2,
-          width: CHECKBOX_SIZE,
-          height: CHECKBOX_SIZE,
-          borderColor: rgb(0, 0, 0),
-          borderWidth: 1,
-        });
-        
-        // Draw Yes text
-        page.drawText("YES", {
-          x: VALUE_X - 15,
+      // Draw NO checkbox
+      page.drawRectangle({
+        x: noCheckboxX,
+        y: cursor - 2,
+        width: CHECKBOX_SIZE,
+        height: CHECKBOX_SIZE,
+        borderColor: rgb(0, 0, 0),
+        borderWidth: 1,
+      });
+      
+      // Draw NO text
+      page.drawText("NO", {
+        x: noTextX,
+        y: cursor,
+        size: TEXT_SIZE,
+        font: font,
+        color: rgb(0, 0, 0),
+      });
+      
+      // Mark the appropriate checkbox with X
+      if (value.toLowerCase() === "yes") {
+        page.drawText("X", {
+          x: yesCheckboxX + CHECKBOX_SIZE/2 - 3,
           y: cursor,
           size: TEXT_SIZE,
-          font: font,
+          font: boldFont,
           color: rgb(0, 0, 0),
         });
-        
-        // Draw second checkbox
-        page.drawRectangle({
-          x: VALUE_X + 30,
-          y: cursor - 2,
-          width: CHECKBOX_SIZE,
-          height: CHECKBOX_SIZE,
-          borderColor: rgb(0, 0, 0),
-          borderWidth: 1,
-        });
-        
-        // Draw No text
-        page.drawText("NO", {
-          x: VALUE_X + 45,
+      } else if (value.toLowerCase() === "no") {
+        page.drawText("X", {
+          x: noCheckboxX + CHECKBOX_SIZE/2 - 3,
           y: cursor,
           size: TEXT_SIZE,
-          font: font,
-          color: rgb(0, 0, 0),
-        });
-        
-        // If value is Yes or No, fill the appropriate checkbox
-        if (value.toLowerCase() === "yes") {
-          page.drawText("X", {
-            x: VALUE_X - 24,
-            y: cursor - 1,
-            size: TEXT_SIZE,
-            font: boldFont,
-            color: rgb(0, 0, 0),
-          });
-        } else if (value.toLowerCase() === "no") {
-          page.drawText("X", {
-            x: VALUE_X + 36,
-            y: cursor - 1,
-            size: TEXT_SIZE,
-            font: boldFont,
-            color: rgb(0, 0, 0),
-          });
-        }
-      } else {
-        // Draw underline for value field
-        page.drawLine({
-          start: { x: VALUE_X, y: cursor - 2 },
-          end: { x: PAGE_WIDTH - MARGIN, y: cursor - 2 },
-          thickness: 1,
-          color: rgb(0.7, 0.7, 0.7),
-        });
-        
-        // Draw value
-        const formattedValue = formatValue(label, value);
-        page.drawText(formattedValue, {
-          x: VALUE_X,
-          y: cursor,
-          size: TEXT_SIZE,
-          font: font,
+          font: boldFont,
           color: rgb(0, 0, 0),
         });
       }
       
-      cursor -= LINE_HEIGHT;
+      // Update cursor position based on the number of label lines
+      cursor -= Math.max(LINE_HEIGHT, labelLines.length * (TEXT_SIZE + 5));
+    };
+  
+    // Helper function to draw regular form field with text input
+    const drawFormFieldWithText = (label: string, value: string) => {
+      // Split label into multiple lines if needed
+      const maxLabelWidth = VALUE_X - LABEL_X - 10; // Leave some space between label and value
+      const labelLines = splitTextIntoLines(label, font, TEXT_SIZE, maxLabelWidth);
+      
+      // Split value into multiple lines if needed
+      const maxValueWidth = PAGE_WIDTH - MARGIN - VALUE_X - 10;
+      const valueLines = splitTextIntoLines(value, font, TEXT_SIZE, maxValueWidth);
+      
+      // Calculate total height needed
+      const totalHeight = Math.max(
+        labelLines.length * (TEXT_SIZE + 5),
+        valueLines.length * (TEXT_SIZE + 5)
+      );
+      
+      addNewPageIfNeeded(totalHeight + 10);
+      
+      // Draw label lines
+      let labelCursor = cursor;
+      labelLines.forEach(line => {
+        page.drawText(`${line}:`, {
+          x: LABEL_X,
+          y: labelCursor,
+          size: TEXT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+        });
+        labelCursor -= TEXT_SIZE + 5;
+      });
+      
+      // Draw value lines
+      let valueCursor = cursor;
+      valueLines.forEach(line => {
+        // Draw underline for each line of the value
+        page.drawLine({
+          start: { x: VALUE_X, y: valueCursor - 2 },
+          end: { x: PAGE_WIDTH - MARGIN, y: valueCursor - 2 },
+          thickness: 1,
+          color: rgb(0.7, 0.7, 0.7),
+        });
+        
+        // Draw value text
+        page.drawText(line, {
+          x: VALUE_X,
+          y: valueCursor,
+          size: TEXT_SIZE,
+          font: font,
+          color: rgb(0, 0, 0),
+        });
+        valueCursor -= TEXT_SIZE + 5;
+      });
+      
+      // Update cursor position based on the maximum number of lines
+      cursor -= Math.max(
+        labelLines.length * (TEXT_SIZE + 5),
+        valueLines.length * (TEXT_SIZE + 5)
+      ) + 5;
+    };
+  
+    // Main form field drawing function that decides between checkbox and text
+    const drawFormField = (label: string, value: string) => {
+      // Determine if this field should have checkboxes (yes/no questions)
+      const isYesNoField = 
+        typeof value === 'string' && 
+        (value.toLowerCase() === 'yes' || value.toLowerCase() === 'no');
+      
+      if (isYesNoField) {
+        drawFormFieldWithCheckbox(label, value);
+      } else {
+        drawFormFieldWithText(label, value);
+      }
     };
   
     // Helper function to draw horizontal dividers
     const drawDivider = () => {
-      if (cursor - 10 < MARGIN) {
-        page = pdfDoc.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
-        drawPageHeader();
-      }
+      addNewPageIfNeeded(20);
       page.drawLine({
         start: { x: MARGIN, y: cursor },
         end: { x: PAGE_WIDTH - MARGIN, y: cursor },
@@ -366,24 +334,40 @@ export function Benefits() {
   
     // Helper function to format values
     const formatValue = (label: string, value: string) => {
-      if (label === 'createdAt' || label === 'updatedAt') {
-        const timestamp = JSON.parse(value.replace('Timestamp(', '{').replace(')', '}'));
-        const date = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1e6);
-        return date.toLocaleDateString('en-US');
+      if (!value) return "";
+      
+      if (label === 'createdAt' || label === 'updatedAt' || label.toLowerCase().includes('date')) {
+        if (value.includes('Timestamp')) {
+          const timestamp = JSON.parse(value.replace('Timestamp(', '{').replace(')', '}'));
+          const date = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1e6);
+          return date.toLocaleDateString('en-US');
+        } else if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          // Format YYYY-MM-DD dates
+          const date = new Date(value);
+          return date.toLocaleDateString('en-US');
+        }
       }
+      
       if (label.toLowerCase().includes('phone')) {
         const num = value.replace(/\D/g, '');
         if (num.length >= 10) {
           return `(${num.slice(0, 3)}) ${num.slice(3, 6)}-${num.slice(6, 10)}`;
         }
       }
-      if (label.toLowerCase().includes('expense') || label.toLowerCase().includes('income')) {
+      
+      if (label.toLowerCase().includes('expense') || 
+          label.toLowerCase().includes('income') || 
+          label.toLowerCase().includes('cost') ||
+          value.includes('$')) {
         // Format as currency
-        if (!isNaN(parseFloat(value))) {
+        if (value.startsWith('$')) {
+          return value;
+        } else if (!isNaN(parseFloat(value))) {
           return `$${parseFloat(value).toFixed(2)}`;
         }
         return value.replace(/\\\$/g, '$');
       }
+      
       return value;
     };
   
@@ -395,7 +379,7 @@ export function Benefits() {
   
       for (let i = 1; i < words.length; i++) {
         const width = font.widthOfTextAtSize(`${currentLine} ${words[i]}`, fontSize);
-        if (width <= maxWidth - (MARGIN * 2)) {
+        if (width <= maxWidth) {
           currentLine += ` ${words[i]}`;
         } else {
           lines.push(currentLine);
@@ -427,37 +411,12 @@ export function Benefits() {
     });
     cursor -= TEXT_SIZE + 15;
     
-    // Draw personal information section
-    drawSectionHeader("PERSONAL INFORMATION");
-    
-    // Draw form fields for the user profile data
-    Object.entries(user).forEach(([key, value]) => {
-      if (value !== '' && value !== undefined && value !== null) {
-        // Format labels nicely
-        const label = key.replace(/([A-Z])/g, ' $1')
-          .replace(/^./, str => str.toUpperCase())
-          .trim();
-        
-        // Determine if this field should have checkboxes (yes/no questions)
-        const isYesNoField = 
-          typeof value === 'string' && 
-          (value.toLowerCase() === 'yes' || value.toLowerCase() === 'no') && 
-          (key.startsWith('is') || key.startsWith('has') || 
-           key.includes('eligible') || key.includes('needs'));
-        
-        drawFormField(label, String(value), isYesNoField);
-      }
-    });
-    
-    drawDivider();
-    
-    // Draw application specific section
+    // Draw application-specific section directly, skipping the personal info section
     drawSectionHeader(`${program.toUpperCase()} INFORMATION`);
     
-    // Draw form fields for answers
+    // Draw form fields for answers - these are the application-specific fields
     Object.entries(answers).forEach(([question, answer]) => {
-      const isYesNoAnswer = answer.toLowerCase() === 'yes' || answer.toLowerCase() === 'no';
-      drawFormField(question, answer, isYesNoAnswer);
+      drawFormField(question, answer);
     });
     
     drawDivider();
@@ -504,11 +463,13 @@ export function Benefits() {
       color: rgb(0, 0, 0),
     });
     
-    // Add page numbers at the bottom
-    const totalPages = pdfDoc.getPageCount();
+    // Calculate total pages
+    totalPages = pdfDoc.getPageCount();
+    
+    // Add page numbers at the bottom of each page
     for (let i = 0; i < totalPages; i++) {
-      const page = pdfDoc.getPage(i);
-      page.drawText(`PAGE ${i + 1} OF ${totalPages}`, {
+      const currentPage = pdfDoc.getPage(i);
+      currentPage.drawText(`PAGE ${i + 1} OF ${totalPages}`, {
         x: PAGE_WIDTH - MARGIN - 100,
         y: MARGIN - 15,
         size: 8,
@@ -522,7 +483,7 @@ export function Benefits() {
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     setDownloadUrl(url);
-  };
+  };  
 
   /* ---------------------------- Submissions ---------------------------- */
   const handleInitialSubmit = async (e: React.FormEvent) => {
@@ -676,7 +637,7 @@ export function Benefits() {
           <p className="text-white text-lg">{results}</p>
           <div className="flex gap-2">
             <button onClick={() => handlePrefillChoice(true)} className="flex-1 px-4 py-2 bg-green-500 text-white rounded">Yes, pre‑fill for me</button>
-            <button onClick={() => handlePrefillChoice(false)} className="flex-1 px-4 py-2 bg-red-500 text-white rounded">No, I’ll fill it myself</button>
+            <button onClick={() => handlePrefillChoice(false)} className="flex-1 px-4 py-2 bg-red-500 text-white rounded">No, I'll fill it myself</button>
           </div>
         </div>
       )}
