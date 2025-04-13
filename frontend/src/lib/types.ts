@@ -23,5 +23,20 @@ export interface ExtendedFormData {
     dependentsAges?: string;
     zipCode?: string;
     state?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    address?: string;
+    highSchoolGradDate?: string;
+    isCaliStudent?: string;
+    isCSUStudent?: string;
+    isCCStudent?: string;
+    university?: string;
+    gradeLevel?: string;
+    gpa?: string;
+    ssn?: string;
+    dob?: string;
+    age?: string;
+    phoneNumber?: string;
   }
   
