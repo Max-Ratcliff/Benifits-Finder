@@ -1,74 +1,3 @@
-// import { GoogleGenerativeAI } from '@google/generative-ai';
-// import type { ExtendedFormData } from './types';
-
-// const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
-
-// /**
-//  * Generates a benefits analysis based on the provided profile and conversation history.
-//  * @param formData - Extended profile data including optional category.
-//  * @param conversationHistory - Optional dialogue history to maintain context.
-//  * @returns A textual response from Gemini.
-//  */
-
-// export async function analyzeBenefits(
-//   formData: ExtendedFormData & { category?: string },
-//   conversationHistory: string = ""
-// ) {
-//   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  
-//   let prompt = "";
-  
-//   if (conversationHistory.trim().length > 0) {
-//     prompt += `Conversation History:\n${conversationHistory}\n\n`;
-//   }
-  
-//   prompt += `User Profile:\n`;
-//   prompt += `- Student Status: ${formData.isStudent === "Yes" ? "Currently enrolled" : "Not enrolled"}\n`;
-//   prompt += `- Employment: ${formData.hasJob === "Yes" ? "Employed" : "Unemployed"}\n`;
-//   prompt += `- Dependents: ${formData.hasDependents === "Yes" ? "Has dependents" : "No dependents"}\n`;
-  
-//   if (formData.institutionType)
-//     prompt += `- Institution Type: ${formData.institutionType}\n`;
-//   if (formData.isUCStudent)
-//     prompt += `- UC Student Status: ${formData.isUCStudent}\n`;
-//   if (formData.financialAid)
-//     prompt += `- Receiving Financial Aid: ${formData.financialAid}\n`;
-//   if (formData.jobTraining)
-//     prompt += `- Interested in Job Training: ${formData.jobTraining}\n`;
-//   if (formData.housingStatus)
-//     prompt += `- Housing Status: ${formData.housingStatus}\n`;
-//   if (formData.needsHousingAssistance)
-//     prompt += `- Needs Housing Assistance: ${formData.needsHousingAssistance}\n`;
-//   if (formData.hasInsurance)
-//     prompt += `- Health Insurance: ${formData.hasInsurance}\n`;
-//   if (formData.eligibleForHealthcare)
-//     prompt += `- Eligible for Healthcare Programs: ${formData.eligibleForHealthcare}\n`;
-//   if (formData.healthcareNeeds)
-//     prompt += `- Specific Healthcare Needs: ${formData.healthcareNeeds}\n`;
-//   if (formData.incomeBracket)
-//     prompt += `- Income Bracket: ${formData.incomeBracket}\n`;
-//   if (formData.dependentsCount)
-//     prompt += `- Number of Dependents: ${formData.dependentsCount}\n`;
-//   if (formData.category)
-//     prompt += `- Benefit Category: ${formData.category}\n`;
-  
-//   prompt += `\nAnalyze the profile above.  Based on the profile, provide a succinct recommendation of specific government and educational benefit programs
-//   the user could be eligible for (e.g., scholarships, unemployment insurance, housing vouchers, Medicaid), including links to the forms.  
-//   For each program, provide a short explanation and include a link. Keep your response clear and not overly verbose.
-//   Make sure the user information is being used to determine which links to show them. Remove any *, [, or ] character potentially confusing the user.
-//   Then, ask one brief follow-up question prompting the user to specify which benefit program they would like more information about.
-//   Use information about the follow ups, the profile data, and previous conversation from the user autocomplete the form.`;
-  
-//   try {
-//     const result = await model.generateContent(prompt);
-//     const response = await result.response;
-//     return response.text();
-//   } catch (error) {
-//     console.error("Error generating content:", error);
-//     return "Unable to analyze benefits at this time. Please try again later.";
-//   }
-// }
-
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ExtendedFormData } from './types';
 
@@ -161,43 +90,6 @@ export async function analyzeBenefits(
 }
 
 /**
- * Generate form questions for a specific benefit program
- * @param programName - The name of the benefit program
- * @param userProfile - User profile data
- * @returns A list of form fields and initial values
- */
-export async function generateFormFields(
-  programName: string,
-  userProfile: ExtendedFormData
-) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-  
-  const prompt = `
-  Based on the following user profile:
-  ${JSON.stringify(userProfile, null, 2)}
-  
-  Generate a JSON structure representing the form fields needed for the "${programName}" program application.
-  For each field, include:
-  1. A field ID
-  2. A question or label
-  3. A field type (text, number, select, radio, etc.)
-  4. Possible options if applicable
-  5. A prefilled value based on the user profile if available
-  
-  Return ONLY the JSON structure without any additional explanation.
-  `;
-  
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return JSON.parse(response.text());
-  } catch (error) {
-    console.error("Error generating form fields:", error);
-    return null;
-  }
-}
-
-/**
  * Process a user's answer to a form question and determine the next question
  * @param programName - The benefit program name
  * @param currentQuestion - The current question being answered
@@ -216,26 +108,69 @@ export async function processFormAnswer(
 ) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
+  // Include all standard personal information in profile data
+  const profileData = {
+    ...userProfile,
+    // Explicitly including all personal fields to ensure they're considered
+    firstName: userProfile.firstName || '',
+    lastName: userProfile.lastName || '',
+    email: userProfile.email || '',
+    address: userProfile.address || '',
+    ssn: userProfile.ssn || '',
+    dob: userProfile.dob || '',
+    phoneNumber: userProfile.phoneNumber || '',
+    age: userProfile.age || ''
+  };
+
   let prompt = "";
   if (!currentQuestion) {
     prompt = `Start the application process for "${programName}".
-User profile: ${JSON.stringify(userProfile)}
+User profile: ${JSON.stringify(profileData)}
+Previous form submissions data: ${JSON.stringify(formProgress)}
+
 Provide the first question to ask the user and a possible prefilled value based on their profile.
+IMPORTANT: You must ask ALL relevant questions for a complete ${programName} application, including but not limited to:
+- Full name (first, middle, last)
+- Date of birth
+- Social Security Number (SSN)
+- Permanent mailing address
+- Contact information (phone, email)
+- Household information
+- Income verification questions
+- Any program-specific eligibility questions
+
+Do not skip any fields that would be required on an official government application, even common ones like address or date of birth.
+Use information from the user profile or previous form submissions when suggesting prefill values.
+
 Respond in the following format:
 NEXT_QUESTION: [first question]
-PREFILL: [prefilled value or empty]
+PREFILL: [prefilled value from profile or empty]
 COMPLETE: false`;
   } else {
     prompt = `The user is filling out an application form for the "${programName}" program.
-User profile: ${JSON.stringify(userProfile)}
-Previous answers:
+User profile: ${JSON.stringify(profileData)}
+Previous answers in current form:
 ${Object.entries(formProgress).map(([q, a]) => `${q}: ${a}`).join('\n')}
 Current question: ${currentQuestion}
 User's answer: ${answer}
+
 Based on this information:
 1. Validate if the answer is appropriate for the question
 2. Determine the next logical question to ask
-3. If all necessary information has been collected, indicate the form is complete
+3. IMPORTANT: You must ask ALL relevant questions for a complete ${programName} application, including but not limited to:
+   - Full name (first, middle, last)
+   - Date of birth
+   - Social Security Number (SSN)
+   - Permanent mailing address
+   - Contact information (phone, email)
+   - Household information
+   - Income verification questions
+   - Any program-specific eligibility questions
+
+4. Look for information in the user profile that can be used to prefill answers
+5. Consider if fields like date of birth, SSN, address, phone number, etc. have already been asked - if not, make sure to include them
+6. If all necessary information has been collected, indicate the form is complete
+
 Respond in the following format:
 VALID: [true/false]
 FEEDBACK: [Any feedback about the answer if invalid]
@@ -281,6 +216,19 @@ export async function generateFormSummary(
 ) {
   const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
   
+  // Explicitly include personal information fields
+  const fullProfile = {
+    ...userProfile,
+    firstName: userProfile.firstName || '',
+    lastName: userProfile.lastName || '',
+    email: userProfile.email || '',
+    address: userProfile.address || '',
+    ssn: userProfile.ssn || '',
+    dob: userProfile.dob || '',
+    phoneNumber: userProfile.phoneNumber || '',
+    age: userProfile.age || ''
+  };
+  
   const prompt = `
   The user has completed an application for the "${programName}" program.
   
@@ -290,7 +238,7 @@ export async function generateFormSummary(
     .join('\n')}
   
   User profile:
-  ${JSON.stringify(userProfile, null, 2)}
+  ${JSON.stringify(fullProfile, null, 2)}
   
   Please generate:
   1. A summary of the information provided
@@ -309,5 +257,64 @@ export async function generateFormSummary(
   } catch (error) {
     console.error("Error generating form summary:", error);
     return "Thank you for completing your application. Your submission has been recorded, and you'll be notified about next steps soon.";
+  }
+}
+
+/**
+ * Generate form questions for a specific benefit program
+ * @param programName - The name of the benefit program
+ * @param userProfile - User profile data
+ * @returns A list of form fields and initial values
+ */
+export async function generateFormFields(
+  programName: string,
+  userProfile: ExtendedFormData
+) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+  
+  // Explicitly include personal information fields
+  const fullProfile = {
+    ...userProfile,
+    firstName: userProfile.firstName || '',
+    lastName: userProfile.lastName || '',
+    email: userProfile.email || '',
+    address: userProfile.address || '',
+    ssn: userProfile.ssn || '',
+    dob: userProfile.dob || '',
+    phoneNumber: userProfile.phoneNumber || '',
+    age: userProfile.age || ''
+  };
+  
+  const prompt = `
+  Based on the following user profile:
+  ${JSON.stringify(fullProfile, null, 2)}
+  
+  Generate a JSON structure representing the form fields needed for the "${programName}" program application.
+  Include ALL standard required fields for government applications such as:
+  - Full name (first, middle, last)
+  - Date of birth
+  - Social Security Number (SSN)
+  - Permanent mailing address
+  - Contact information (phone, email)
+  - Household information
+  - Income verification questions
+  
+  For each field, include:
+  1. A field ID
+  2. A question or label
+  3. A field type (text, number, select, radio, etc.)
+  4. Possible options if applicable
+  5. A prefilled value based on the user profile if available
+  
+  Return ONLY the JSON structure without any additional explanation.
+  `;
+  
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return JSON.parse(response.text());
+  } catch (error) {
+    console.error("Error generating form fields:", error);
+    return null;
   }
 }
