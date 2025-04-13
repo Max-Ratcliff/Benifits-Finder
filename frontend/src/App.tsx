@@ -17,7 +17,6 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
-          {/* Home page will check if settings are complete. If not, it should prompt for settings */}
           <Route path="/home" element={<Layout><Home /></Layout>} />
           <Route path="/benefits" element={<Layout><Benefits /></Layout>} />
           <Route path="/settings" element={<Layout><Settings /></Layout>} />
